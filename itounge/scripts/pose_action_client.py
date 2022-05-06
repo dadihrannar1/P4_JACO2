@@ -244,10 +244,13 @@ if __name__ == '__main__':
     getcurrentCartesianCommand(prefix)
 
     pose_mq, pose_mdeg, pose_mrad = unitParser(args.unit, args.pose_value, args.relative)
-
+  
     try:
 
         poses = [float(n) for n in pose_mq]
+        
+        print(f"i heard: {args.pose_value}")
+       
         print(f"i heard: {poses}")
         poses = [0.009590843319892878, -0.3046131730079651, 0.5225686430931091, 0.6971788727385513, 0.16368353501991328, 0.5053636054298092, 0.4814114104145974]
         print(f"i heard {poses}")

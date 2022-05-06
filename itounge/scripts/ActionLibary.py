@@ -4,11 +4,11 @@
 
 from pickle import FALSE, TRUE
 import rospy
-from std_msgs.msg import String
+from std_msgs.msg import String, Header
 from itounge.msg import RAWItongueOut
-from kinova_msgs.msg import PoseVelocityWithFingerVelocity, SetFingersPositionAction, SetFingersPositionGoal
+from kinova_msgs.msg import PoseVelocityWithFingerVelocity, SetFingersPositionAction, SetFingersPositionGoal, ArmPoseAction, ArmPoseGoal
 import actionlib
-from geometry_msgs.msg import PoseStamped
+from geometry_msgs.msg import PoseStamped, Point, Quaternion
 import time
 
 
@@ -18,19 +18,46 @@ class JACO(object):
 
 
 
+    
+    
+    def cartesian_pose_client():
+    
+        action_address = '/j2n6s200_driver/pose_action/tool_pose'
+        client = actionlib.SimpleActionClient(action_address, ArmPoseAction)
+        client.wait_for_server()
+        
+        goal = ArmPoseGoal()
+        goal.pose.header = Header(frame_id=('j2n6s200_link_base'))
+        goal.pose.pose.position = Point(
+            x=0.009590843319892878, y=-0.3046131730079651, z=0.5225686430931091)
+        goal.pose.pose.orientation = Quaternion(
+            x=0.6971788727385513, y=0.16368353501991328, z=0.5053636054298092, w=0.4814114104145974)
+
+    # print('goal.pose in client 1: {}'.format(goal.pose.pose)) # debug
+
+        client.send_goal(goal)
+
+        if client.wait_for_result(rospy.Duration(10.0)):
+            return client.get_result()
+        else:
+            client.cancel_all_goals()
+            print('        the cartesian action timed-out')
+            return None
+
     def __init__(self):
-        self.action = PoseVelocityWithFingerVelocity()
-        
-        rospy.Subscriber("RAWItongueOut", RAWItongueOut, self.callback)
-        rospy.Subscriber("/j2n6s200_driver/out/tool_pose", PoseStamped, self.second_callback)
-        pub = rospy.Publisher("/j2n6s200_driver/in/cartesian_velocity_with_finger_velocity", PoseVelocityWithFingerVelocity, queue_size=10)
-        
-        r = rospy.Rate(100)
+            self.action = PoseVelocityWithFingerVelocity()
+            
+            rospy.Subscriber("RAWItongueOut", RAWItongueOut, self.callback)
+            rospy.Subscriber("/j2n6s200_driver/out/tool_pose", PoseStamped, self.second_callback)
+            pub = rospy.Publisher("/j2n6s200_driver/in/cartesian_velocity_with_finger_velocity", PoseVelocityWithFingerVelocity, queue_size=10)
+            
+            r = rospy.Rate(100)
 
-        while not rospy.is_shutdown():
-             pub.publish(self.action)
-             r.sleep()
-
+            while not rospy.is_shutdown():
+                JACO.cartesian_pose_client()
+                pub.publish(self.action)
+                r.sleep()
+    
     def second_callback(self, info):
 
          JACO.second_callback.cur_pose = [info.pose.position.x, info.pose.position.y, info.pose.position.z, info.pose.orientation.x, info.pose.orientation.y, info.pose.orientation.z]
